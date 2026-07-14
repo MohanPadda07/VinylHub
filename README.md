@@ -1,36 +1,78 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# VinylHub
+
+VinylHub is a modern web application built for vinyl collectors and music enthusiasts. It provides an all-in-one platform to catalog record collections, discover new music, track vinyl prices, and connect with other collectors.
+
+## Features
+
+- 🎵 Manage and organize your vinyl collection
+- ❤️ Create and manage wishlists
+- 📈 Track vinyl prices over time
+- 🔍 Search for albums and artists
+- 🤝 Connect with other collectors
+- ⭐ Receive personalized music recommendations
+- 👤 Secure user authentication
+- 📱 Responsive design for desktop and mobile
+
+## Tech Stack
+
+- **Framework:** Next.js
+- **Language:** TypeScript
+- **Styling:** Tailwind CSS
+- **Database:** PostgreSQL
+- **Authentication:** Better Auth
+- **ORM:** Drizzle ORM
 
 ## Getting Started
 
-First, run the development server:
+Clone the repository:
+
+```bash
+git clone <repository-url>
+cd vinylhub
+```
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Start the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open your browser and navigate to:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+http://localhost:3000
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Project Structure
 
-## Learn More
+```
+app/            # Next.js App Router pages
+components/     # Reusable UI components
+lib/            # Utilities and shared logic
+db/             # Database schema and configuration
+public/         # Static assets
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Future Features
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- Marketplace for buying and selling records
+- Collection analytics and statistics
+- Vinyl collection sharing
+- Advanced recommendation engine
+- Spotify and Discogs integration
+- Social feed and user profiles
+- Reviews and album ratings
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Contributing
 
-## Deploy on Vercel
+Contributions, feature requests, and bug reports are welcome. Feel free to open an issue or submit a pull request.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## License
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+This project is licensed under the MIT License.

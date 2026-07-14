@@ -1,0 +1,73 @@
+@import "tailwindcss";
+
+:root {
+  --background: #070807;
+  --foreground: #f4f1ea;
+  --muted: #a7a29a;
+  --panel: #10110f;
+  --panel-strong: #171915;
+  --line: rgba(255, 255, 255, 0.1);
+  --emerald: #76f2b3;
+  --amber: #f6c76b;
+  --coral: #ff7f6e;
+  --cyan: #8bd8ff;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-panel: var(--panel);
+  --color-panel-strong: var(--panel-strong);
+  --color-line: var(--line);
+  --color-emerald: var(--emerald);
+  --color-amber: var(--amber);
+  --color-coral: var(--coral);
+  --color-cyan: var(--cyan);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+::selection {
+  background: rgba(118, 242, 179, 0.28);
+}
+
+.record-grooves {
+  background:
+    radial-gradient(circle at center, #0b0b0b 0 8%, transparent 8%),
+    repeating-radial-gradient(circle at center, #151515 0 2px, #050505 3px 7px);
+}
+
+.album-sheen {
+  position: relative;
+  overflow: hidden;
+}
+
+.album-sheen::after {
+  background: linear-gradient(
+    115deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.2) 42%,
+    transparent 58%
+  );
+  content: "";
+  inset: -30%;
+  position: absolute;
+  transform: translateX(-38%) rotate(12deg);
+}
+
+.glass-border {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 24px 80px rgba(0, 0, 0, 0.28);
+}

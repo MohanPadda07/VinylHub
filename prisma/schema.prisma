@@ -1,0 +1,452 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  USER
+  MODERATOR
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum Visibility {
+  PUBLIC
+  PRIVATE
+  FOLLOWERS
+  UNLISTED
+}
+
+enum VoteType {
+  UP
+  DOWN
+}
+
+enum CommunityType {
+  ARTIST
+  GENRE
+  ALBUM
+  GENERAL
+}
+
+enum CollectionStatus {
+  OWNED
+  WISHLIST
+  TRADE
+  SELL
+  PREVIOUSLY_OWNED
+}
+
+enum AIJobStatus {
+  QUEUED
+  RUNNING
+  SUCCEEDED
+  FAILED
+  BLOCKED
+}
+
+model User {
+  id              String           @id @default(cuid())
+  clerkUserId     String           @unique
+  username        String           @unique
+  displayName     String
+  imageUrl        String?
+  bio             String?
+  role            Role             @default(USER)
+  reputation      Int              @default(0)
+  xp              Int              @default(0)
+  level           Int              @default(1)
+  favoriteArtists String[]         @default([])
+  favoriteGenres  String[]         @default([])
+  favoriteAlbums  String[]         @default([])
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  collectionItems CollectionItem[]
+  comments        Comment[]
+  posts           Post[]
+  reviews         Review[]
+  lists           List[]
+  arguments       DebateArgument[]
+  followers       Follow[]         @relation("following")
+  following       Follow[]         @relation("follower")
+  recommendations Recommendation[]
+  reports         Report[]         @relation("reporter")
+  moderation      ModerationAction[]
+}
+
+model Follow {
+  id          String   @id @default(cuid())
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+  follower    User     @relation("follower", fields: [followerId], references: [id], onDelete: Cascade)
+  following   User     @relation("following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@index([followingId])
+}
+
+model Artist {
+  id          String      @id @default(cuid())
+  name        String
+  slug        String      @unique
+  imageUrl    String?
+  bio         String?
+  country     String?
+  startedYear Int?
+  albums      Album[]
+  communities Community[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model Genre {
+  id          String      @id @default(cuid())
+  name        String
+  slug        String      @unique
+  description String?
+  parentId    String?
+  parent      Genre?      @relation("GenreTree", fields: [parentId], references: [id])
+  children    Genre[]     @relation("GenreTree")
+  albums      AlbumGenre[]
+  communities Community[]
+}
+
+model Album {
+  id              String           @id @default(cuid())
+  title           String
+  slug            String           @unique
+  year            Int?
+  coverUrl        String?
+  aiSummary       String?
+  communityRating Float?
+  artistId        String
+  artist          Artist           @relation(fields: [artistId], references: [id])
+  tracks          Track[]
+  genres          AlbumGenre[]
+  vinylReleases   VinylRelease[]
+  reviews         Review[]
+  listItems       ListItem[]
+  communities     Community[]
+  recommendations Recommendation[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@index([artistId])
+}
+
+model AlbumGenre {
+  albumId String
+  genreId String
+  album   Album  @relation(fields: [albumId], references: [id], onDelete: Cascade)
+  genre   Genre  @relation(fields: [genreId], references: [id], onDelete: Cascade)
+
+  @@id([albumId, genreId])
+}
+
+model Track {
+  id        String @id @default(cuid())
+  albumId   String
+  position  Int
+  title     String
+  duration  Int?
+  album     Album  @relation(fields: [albumId], references: [id], onDelete: Cascade)
+
+  @@unique([albumId, position])
+}
+
+model Label {
+  id       String         @id @default(cuid())
+  name     String
+  slug     String         @unique
+  country  String?
+  releases VinylRelease[]
+}
+
+model VinylRelease {
+  id                  String           @id @default(cuid())
+  albumId             String
+  labelId             String?
+  title               String
+  catalogNumber       String?
+  barcode             String?
+  country             String?
+  releaseYear         Int?
+  format              String           @default("LP")
+  color               String?
+  limitedEditionCount Int?
+  matrixNumbers       String[]         @default([])
+  marketValueCents    Int?
+  rarityScore         Int?
+  album               Album            @relation(fields: [albumId], references: [id], onDelete: Cascade)
+  label               Label?           @relation(fields: [labelId], references: [id])
+  collectionItems     CollectionItem[]
+  priceSnapshots      PriceSnapshot[]
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+
+  @@index([albumId])
+  @@index([barcode])
+}
+
+model PriceSnapshot {
+  id             String       @id @default(cuid())
+  vinylReleaseId String
+  lowCents       Int?
+  medianCents    Int?
+  highCents      Int?
+  source         String
+  capturedAt     DateTime     @default(now())
+  vinylRelease   VinylRelease @relation(fields: [vinylReleaseId], references: [id], onDelete: Cascade)
+
+  @@index([vinylReleaseId, capturedAt])
+}
+
+model CollectionItem {
+  id                String           @id @default(cuid())
+  userId            String
+  vinylReleaseId    String
+  status            CollectionStatus @default(OWNED)
+  mediaCondition    String?
+  sleeveCondition   String?
+  purchasePriceCents Int?
+  purchaseDate      DateTime?
+  notes             String?
+  visibility        Visibility       @default(PUBLIC)
+  user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vinylRelease      VinylRelease     @relation(fields: [vinylReleaseId], references: [id], onDelete: Cascade)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  @@unique([userId, vinylReleaseId, status])
+  @@index([userId, status])
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  userId    String
+  albumId   String
+  rating    Int
+  body      String?
+  likes     Int      @default(0)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  album     Album    @relation(fields: [albumId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, albumId])
+}
+
+model List {
+  id          String             @id @default(cuid())
+  userId      String
+  title       String
+  slug        String
+  description String?
+  visibility  Visibility         @default(PUBLIC)
+  collaborative Boolean          @default(false)
+  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items       ListItem[]
+  collaborators ListCollaborator[]
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  @@unique([userId, slug])
+}
+
+model ListItem {
+  id        String @id @default(cuid())
+  listId    String
+  albumId   String
+  position  Int
+  note      String?
+  list      List   @relation(fields: [listId], references: [id], onDelete: Cascade)
+  album     Album  @relation(fields: [albumId], references: [id], onDelete: Cascade)
+
+  @@unique([listId, position])
+  @@unique([listId, albumId])
+}
+
+model ListCollaborator {
+  id      String @id @default(cuid())
+  listId  String
+  userId  String
+  role    String @default("editor")
+  list    List   @relation(fields: [listId], references: [id], onDelete: Cascade)
+
+  @@unique([listId, userId])
+}
+
+model Community {
+  id          String        @id @default(cuid())
+  name        String
+  slug        String        @unique
+  description String?
+  type        CommunityType
+  artistId    String?
+  albumId     String?
+  genreId     String?
+  artist      Artist?       @relation(fields: [artistId], references: [id])
+  album       Album?        @relation(fields: [albumId], references: [id])
+  genre       Genre?        @relation(fields: [genreId], references: [id])
+  posts       Post[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+model Post {
+  id          String      @id @default(cuid())
+  authorId    String
+  communityId String?
+  title       String
+  body        String
+  score       Int         @default(0)
+  author      User        @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  community   Community?  @relation(fields: [communityId], references: [id])
+  comments    Comment[]
+  votes       PostVote[]
+  reports     Report[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([communityId, createdAt])
+}
+
+model PostVote {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  vote      VoteType
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([postId, userId])
+}
+
+model Comment {
+  id        String    @id @default(cuid())
+  postId    String
+  authorId  String
+  parentId  String?
+  body      String
+  score     Int       @default(0)
+  post      Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author    User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  parent    Comment?  @relation("CommentThread", fields: [parentId], references: [id])
+  replies   Comment[] @relation("CommentThread")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Debate {
+  id          String           @id @default(cuid())
+  title       String
+  slug        String           @unique
+  prompt      String
+  aiSummary   String?
+  options     DebateOption[]
+  arguments   DebateArgument[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+}
+
+model DebateOption {
+  id       String @id @default(cuid())
+  debateId String
+  label    String
+  votes    Int    @default(0)
+  debate   Debate @relation(fields: [debateId], references: [id], onDelete: Cascade)
+}
+
+model DebateArgument {
+  id        String         @id @default(cuid())
+  debateId  String
+  authorId  String
+  optionId  String?
+  body      String
+  score     Int            @default(0)
+  debate    Debate         @relation(fields: [debateId], references: [id], onDelete: Cascade)
+  author    User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  evidence  EvidenceLink[]
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+}
+
+model EvidenceLink {
+  id         String         @id @default(cuid())
+  argumentId String
+  url        String
+  title      String?
+  sourceType String?
+  argument   DebateArgument @relation(fields: [argumentId], references: [id], onDelete: Cascade)
+}
+
+model AIJob {
+  id          String      @id @default(cuid())
+  type        String
+  targetType  String
+  targetId    String
+  promptHash  String?
+  model       String?
+  status      AIJobStatus @default(QUEUED)
+  input       Json?
+  output      Json?
+  error       String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([targetType, targetId])
+}
+
+model Recommendation {
+  id             String   @id @default(cuid())
+  userId         String
+  albumId        String
+  score          Float
+  reason         String
+  sourceSignals  String[] @default([])
+  dismissedAt    DateTime?
+  savedAt        DateTime?
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  album          Album    @relation(fields: [albumId], references: [id], onDelete: Cascade)
+  createdAt      DateTime @default(now())
+
+  @@index([userId, score])
+}
+
+model Report {
+  id         String   @id @default(cuid())
+  reporterId String
+  postId     String?
+  reason     String
+  details    String?
+  status     String   @default("open")
+  reporter   User     @relation("reporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  post       Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+}
+
+model ModerationAction {
+  id          String   @id @default(cuid())
+  moderatorId String
+  targetType  String
+  targetId    String
+  action      String
+  reason      String?
+  moderator   User     @relation(fields: [moderatorId], references: [id])
+  createdAt   DateTime @default(now())
+}
+
+model MarketplaceIntent {
+  id              String   @id @default(cuid())
+  collectionItemId String
+  type            String
+  askingPriceCents Int?
+  tradeNotes      String?
+  active          Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}

@@ -11,6 +11,7 @@
   --amber: #f6c76b;
   --coral: #ff7f6e;
   --cyan: #8bd8ff;
+  --fuchsia: #ff2f92;
 }
 
 @theme inline {
@@ -24,6 +25,7 @@
   --color-amber: var(--amber);
   --color-coral: var(--coral);
   --color-cyan: var(--cyan);
+  --color-fuchsia: var(--fuchsia);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -43,7 +45,8 @@ body {
 
 .record-grooves {
   background:
-    radial-gradient(circle at center, #0b0b0b 0 8%, transparent 8%),
+    radial-gradient(circle at center, rgba(246, 199, 107, 0.35) 0 7%, transparent 7%),
+    radial-gradient(circle at center, #0b0b0b 0 12%, transparent 12%),
     repeating-radial-gradient(circle at center, #151515 0 2px, #050505 3px 7px);
 }
 
@@ -70,4 +73,88 @@ body {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.05),
     0 24px 80px rgba(0, 0, 0, 0.28);
+}
+
+.neon-grid {
+  position: relative;
+}
+
+.neon-grid::before {
+  background-image:
+    linear-gradient(rgba(139, 216, 255, 0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(139, 216, 255, 0.055) 1px, transparent 1px);
+  background-size: 44px 44px;
+  content: "";
+  inset: 0;
+  mask-image: linear-gradient(to bottom, black, transparent 72%);
+  pointer-events: none;
+  position: fixed;
+  z-index: 0;
+}
+
+.neon-grid > * {
+  position: relative;
+  z-index: 1;
+}
+
+.spinning-record {
+  animation: spin-record 18s linear infinite;
+}
+
+.equalizer-bars::before,
+.equalizer-bars::after,
+.equalizer-bars {
+  height: 28px;
+}
+
+.equalizer-bars {
+  display: inline-flex;
+}
+
+.equalizer-bars::before,
+.equalizer-bars::after {
+  background: linear-gradient(to top, var(--emerald), var(--cyan));
+  border-radius: 999px;
+  box-shadow:
+    10px -8px 0 var(--fuchsia),
+    20px 4px 0 var(--amber),
+    30px -14px 0 var(--cyan),
+    40px -3px 0 var(--emerald);
+  content: "";
+  display: block;
+  width: 4px;
+}
+
+.equalizer-bars::after {
+  animation: equalizer-pulse 1.2s ease-in-out infinite alternate;
+  margin-left: 50px;
+}
+
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+@keyframes spin-record {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes equalizer-pulse {
+  from {
+    filter: hue-rotate(0deg);
+    transform: scaleY(0.65);
+  }
+
+  to {
+    filter: hue-rotate(70deg);
+    transform: scaleY(1.05);
+  }
 }

@@ -15,6 +15,8 @@ const isPublicRoute = createRouteMatcher([
   "/sign-up(.*)",
 ]);
 
+const isApiRoute = createRouteMatcher(["/api(.*)"]);
+
 function requestIsLocal(request: NextRequest) {
   const hostname = request.nextUrl.hostname;
 
@@ -53,10 +55,21 @@ const privateAppProxy = clerkMiddleware(async (auth, request) => {
   const session = await auth();
 
   if (!session.userId) {
+    if (isApiRoute(request)) {
+      return NextResponse.json(
+        { error: "Sign in to save releases to your collection." },
+        { status: 401 },
+      );
+    }
+
     return session.redirectToSignIn({ returnBackUrl: request.url });
   }
 
   if (!(await userOwnsApp(session.userId))) {
+    if (isApiRoute(request)) {
+      return NextResponse.json({ error: "Access denied." }, { status: 403 });
+    }
+
     return NextResponse.redirect(new URL("/private-access", request.url));
   }
 

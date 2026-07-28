@@ -35,9 +35,40 @@ enum CommunityType {
 enum CollectionStatus {
   OWNED
   WISHLIST
+  FAVORITE
   TRADE
   SELL
   PREVIOUSLY_OWNED
+}
+
+enum FriendRequestStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  CANCELED
+}
+
+enum ActivityType {
+  COLLECTION_ADD
+  COLLECTION_REMOVE
+  WISHLIST_ADD
+  FAVORITE_ADD
+  POST_CREATE
+  COMMENT_CREATE
+  DEBATE_VOTE
+  FRIEND_ACCEPT
+  REVIEW_CREATE
+}
+
+enum NotificationType {
+  FOLLOW
+  FRIEND_REQUEST
+  FRIEND_ACCEPT
+  COMMENT
+  REPLY
+  LIKE
+  MENTION
+  COLLECTION_INTERACTION
 }
 
 enum AIJobStatus {
@@ -54,8 +85,11 @@ model User {
   username        String           @unique
   displayName     String
   imageUrl        String?
+  bannerUrl       String?
   bio             String?
   role            Role             @default(USER)
+  profileVisibility Visibility      @default(PRIVATE)
+  allowPublicProfile Boolean        @default(false)
   reputation      Int              @default(0)
   xp              Int              @default(0)
   level           Int              @default(1)
@@ -93,9 +127,12 @@ model Artist {
   id          String      @id @default(cuid())
   name        String
   slug        String      @unique
+  discogsId   String?     @unique
+  spotifyId   String?     @unique
   imageUrl    String?
   bio         String?
   country     String?
+  genres      String[]    @default([])
   startedYear Int?
   albums      Album[]
   communities Community[]
@@ -119,8 +156,11 @@ model Album {
   id              String           @id @default(cuid())
   title           String
   slug            String           @unique
+  discogsId       String?          @unique
+  spotifyId       String?          @unique
   year            Int?
   coverUrl        String?
+  styles          String[]         @default([])
   aiSummary       String?
   communityRating Float?
   artistId        String
@@ -150,9 +190,11 @@ model AlbumGenre {
 model Track {
   id        String @id @default(cuid())
   albumId   String
+  spotifyId String? @unique
   position  Int
   title     String
   duration  Int?
+  previewUrl String?
   album     Album  @relation(fields: [albumId], references: [id], onDelete: Cascade)
 
   @@unique([albumId, position])
@@ -162,6 +204,7 @@ model Label {
   id       String         @id @default(cuid())
   name     String
   slug     String         @unique
+  discogsId String?       @unique
   country  String?
   releases VinylRelease[]
 }
@@ -170,6 +213,7 @@ model VinylRelease {
   id                  String           @id @default(cuid())
   albumId             String
   labelId             String?
+  discogsId           String?          @unique
   title               String
   catalogNumber       String?
   barcode             String?
@@ -180,6 +224,7 @@ model VinylRelease {
   limitedEditionCount Int?
   matrixNumbers       String[]         @default([])
   marketValueCents    Int?
+  marketCurrency      String           @default("USD")
   rarityScore         Int?
   album               Album            @relation(fields: [albumId], references: [id], onDelete: Cascade)
   label               Label?           @relation(fields: [labelId], references: [id])
@@ -198,6 +243,7 @@ model PriceSnapshot {
   lowCents       Int?
   medianCents    Int?
   highCents      Int?
+  currency       String       @default("USD")
   source         String
   capturedAt     DateTime     @default(now())
   vinylRelease   VinylRelease @relation(fields: [vinylReleaseId], references: [id], onDelete: Cascade)
@@ -337,8 +383,21 @@ model Comment {
   author    User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
   parent    Comment?  @relation("CommentThread", fields: [parentId], references: [id])
   replies   Comment[] @relation("CommentThread")
+  votes     CommentVote[]
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+}
+
+model CommentVote {
+  id        String   @id @default(cuid())
+  commentId String
+  userId    String
+  vote      VoteType
+  comment   Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([commentId, userId])
+  @@index([userId])
 }
 
 model Debate {
@@ -349,6 +408,7 @@ model Debate {
   aiSummary   String?
   options     DebateOption[]
   arguments   DebateArgument[]
+  votes       DebateVote[]
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
 }
@@ -359,6 +419,20 @@ model DebateOption {
   label    String
   votes    Int    @default(0)
   debate   Debate @relation(fields: [debateId], references: [id], onDelete: Cascade)
+  userVotes DebateVote[]
+}
+
+model DebateVote {
+  id        String       @id @default(cuid())
+  debateId  String
+  optionId  String
+  userId    String
+  debate    Debate       @relation(fields: [debateId], references: [id], onDelete: Cascade)
+  option    DebateOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  createdAt DateTime     @default(now())
+
+  @@unique([debateId, userId])
+  @@index([optionId])
 }
 
 model DebateArgument {
@@ -449,4 +523,58 @@ model MarketplaceIntent {
   active          Boolean  @default(false)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+}
+
+model FriendRequest {
+  id          String              @id @default(cuid())
+  senderId    String
+  receiverId  String
+  status      FriendRequestStatus @default(PENDING)
+  message     String?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  @@unique([senderId, receiverId])
+  @@index([receiverId, status])
+  @@index([senderId, status])
+}
+
+model Activity {
+  id         String       @id @default(cuid())
+  userId     String
+  type       ActivityType
+  targetType String
+  targetId   String
+  metadata   Json?
+  visibility Visibility   @default(PRIVATE)
+  createdAt  DateTime     @default(now())
+
+  @@index([userId, createdAt])
+  @@index([type, createdAt])
+}
+
+model Notification {
+  id         String           @id @default(cuid())
+  userId     String
+  actorId    String?
+  type       NotificationType
+  title      String
+  body       String?
+  targetType String?
+  targetId   String?
+  readAt     DateTime?
+  createdAt  DateTime         @default(now())
+
+  @@index([userId, readAt, createdAt])
+}
+
+model Bookmark {
+  id         String   @id @default(cuid())
+  userId     String
+  targetType String
+  targetId   String
+  createdAt  DateTime @default(now())
+
+  @@unique([userId, targetType, targetId])
+  @@index([targetType, targetId])
 }

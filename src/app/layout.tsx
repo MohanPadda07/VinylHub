@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Toaster } from "@/components/ui/sonner";
 import { QueryProvider } from "@/components/providers/query-provider";
 import "./globals.css";
 
@@ -20,6 +21,10 @@ export const metadata: Metadata = {
   title: "VinylHub",
   description:
     "A social music platform for vinyl collecting, discovery, community debates, and AI recommendations.",
+  icons: {
+    icon: "/brand/vinylhub-mark.png",
+    apple: "/brand/vinylhub-mark.png",
+  },
 };
 
 export default function RootLayout({
@@ -31,7 +36,6 @@ export default function RootLayout({
     <html lang="en" className="dark" suppressHydrationWarning>
       <head>
         <script
-          async
           id="remove-darkreader-hydration-mutations"
           dangerouslySetInnerHTML={{
             __html: `
@@ -67,8 +71,42 @@ export default function RootLayout({
                   }
                 };
 
-                cleanNode(document.documentElement);
-                document.querySelectorAll("[data-darkreader-mode], [data-darkreader-scheme], [data-darkreader-proxy-injected], [data-darkreader-inline-stroke], [data-darkreader-inline-fill], [data-darkreader-inline-bgcolor], [data-darkreader-inline-color], [data-darkreader-inline-border], [style*='--darkreader']").forEach(cleanNode);
+                const cleanTree = (root) => {
+                  cleanNode(root);
+
+                  if (root instanceof Element) {
+                    root.querySelectorAll("*").forEach(cleanNode);
+                  }
+                };
+
+                cleanTree(document.documentElement);
+
+                const observer = new MutationObserver((mutations) => {
+                  for (const mutation of mutations) {
+                    if (mutation.type === "attributes") {
+                      cleanNode(mutation.target);
+                      continue;
+                    }
+
+                    mutation.addedNodes.forEach((node) => {
+                      if (node instanceof Element) {
+                        cleanTree(node);
+                      }
+                    });
+                  }
+                });
+
+                observer.observe(document.documentElement, {
+                  attributes: true,
+                  attributeFilter: darkReaderAttributes,
+                  subtree: true,
+                  childList: true,
+                });
+
+                const stopObserving = () => observer.disconnect();
+                window.addEventListener("load", () => {
+                  window.setTimeout(stopObserving, 4000);
+                }, { once: true });
               })();
             `,
           }}
@@ -80,10 +118,16 @@ export default function RootLayout({
       >
         {clerkPublishableKey ? (
           <ClerkProvider publishableKey={clerkPublishableKey}>
-            <QueryProvider>{children}</QueryProvider>
+            <QueryProvider>
+              {children}
+              <Toaster theme="dark" />
+            </QueryProvider>
           </ClerkProvider>
         ) : (
-          <QueryProvider>{children}</QueryProvider>
+          <QueryProvider>
+            {children}
+            <Toaster theme="dark" />
+          </QueryProvider>
         )}
       </body>
     </html>

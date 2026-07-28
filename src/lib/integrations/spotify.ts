@@ -38,6 +38,7 @@ type SpotifyTrack = {
   id: string;
   name: string;
   preview_url?: string | null;
+  duration_ms?: number;
   album?: SpotifyAlbum;
   artists?: Array<{ name: string }>;
   external_urls?: SpotifyExternalUrls;
@@ -114,12 +115,16 @@ function artistNames(artists?: Array<{ name: string }>) {
   );
 }
 
-export async function searchSpotify(query: string) {
+export async function searchSpotify(
+  query: string,
+  options: { offset?: number; limit?: number } = {},
+) {
   const accessToken = await getSpotifyAccessToken();
   const url = new URL("/v1/search", SPOTIFY_API_BASE_URL);
   url.searchParams.set("q", query);
   url.searchParams.set("type", "album,artist,track");
-  url.searchParams.set("limit", "8");
+  url.searchParams.set("limit", String(options.limit ?? 8));
+  url.searchParams.set("offset", String(options.offset ?? 0));
 
   const response = await fetch(url, {
     headers: {
@@ -171,4 +176,35 @@ export async function searchSpotify(query: string) {
   );
 
   return { albums, artists, tracks };
+}
+
+export async function getSpotifyAlbumTracks(spotifyAlbumId: string) {
+  const accessToken = await getSpotifyAccessToken();
+  const url = new URL(`/v1/albums/${spotifyAlbumId}/tracks`, SPOTIFY_API_BASE_URL);
+  url.searchParams.set("limit", "50");
+
+  const response = await fetch(url, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+    next: { revalidate: 3600 },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Spotify album tracks failed with ${response.status}.`);
+  }
+
+  const payload = (await response.json()) as {
+    items?: SpotifyTrack[];
+  };
+
+  return (payload.items ?? []).map((track, index) => ({
+    id: track.id,
+    position: index + 1,
+    title: track.name,
+    artist: artistNames(track.artists),
+    previewUrl: track.preview_url ?? undefined,
+    duration:
+      typeof track.duration_ms === "number"
+        ? Math.round(track.duration_ms / 1000)
+        : undefined,
+  }));
 }

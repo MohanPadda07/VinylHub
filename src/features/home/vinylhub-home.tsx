@@ -1,232 +1,236 @@
 "use client";
 
+import Link from "next/link";
 import { motion } from "framer-motion";
 import {
   Activity,
   Disc3,
   Flame,
+  Library,
+  Plus,
   Radio,
-  Sparkles,
+  Search,
   Star,
   TrendingUp,
-  Users,
-  Waves,
 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AppShell } from "@/features/app-shell/app-shell";
 import { LiveSearchExperience } from "@/features/search/live-search-experience";
-import { cn } from "@/lib/utils";
+import { MetricCard } from "@/components/vinyl/metric-card";
+import { usePlayerStore } from "@/stores/player-store";
 
-const stats = [
-  { label: "Live sources", value: "2", tone: "text-cyan" },
-  { label: "Vinyl signal", value: "Discogs", tone: "text-emerald" },
-  { label: "Music graph", value: "Spotify", tone: "text-amber" },
-  { label: "Mode", value: "Neon", tone: "text-coral" },
-];
+type DiscoverData = {
+  albums: Array<{ title: string; slug: string; coverUrl: string | null; artist: string; rating: number | null }>;
+  artists: Array<{ name: string; slug: string; imageUrl: string | null; albumCount: number }>;
+  trending: Array<{ title: string; albumSlug: string; artist: string; coverUrl: string | null }>;
+  activity: Array<{ id: string; type: string; user: { displayName: string; username: string }; createdAt: string }>;
+};
 
-const pulseItems = [
-  "Discogs release search is wired for vinyl, variants, labels, and catalog numbers.",
-  "Spotify enrichment is wired for albums, artists, tracks, and streaming links.",
-  "The next milestone can save search results into your collection and wishlist.",
-];
-
-const debateItems = [
-  { title: "Best live album pressings?", leader: "Jazz collectors", votes: "2.4k" },
-  { title: "Is colored vinyl overrated?", leader: "Split vote", votes: "8.1k" },
-  { title: "Most essential 90s hip-hop LP?", leader: "Illmatic", votes: "11.2k" },
-];
+function money(cents?: number) {
+  if (!cents) return "$0";
+  return `$${Math.round(cents / 100).toLocaleString()}`;
+}
 
 export function VinylHubHome() {
+  const { activeTrack } = usePlayerStore();
+
+  const { data: stats } = useQuery({
+    queryKey: ["collection-stats"],
+    queryFn: async () => {
+      const res = await fetch("/api/collection/stats");
+      if (!res.ok) return null;
+      return (await res.json()).stats;
+    },
+  });
+
+  const { data: recent } = useQuery({
+    queryKey: ["collection-recent"],
+    queryFn: async () => {
+      const res = await fetch("/api/collection");
+      if (!res.ok) return [];
+      const data = await res.json();
+      return (data.items ?? []).slice(0, 4);
+    },
+  });
+
+  const { data: discover } = useQuery({
+    queryKey: ["discover-trending"],
+    queryFn: async () => {
+      const res = await fetch("/api/discover/trending");
+      if (!res.ok) return null;
+      return res.json() as Promise<DiscoverData>;
+    },
+  });
+
   return (
     <AppShell>
-      <div className="grid gap-5 py-5 xl:grid-cols-[1fr_390px]">
+      <div className="grid gap-5 py-5 xl:grid-cols-[1fr_360px]">
         <section className="space-y-5">
-          <section className="glass-border relative overflow-hidden rounded-lg bg-black/65 p-5 sm:p-6">
-            <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-fuchsia/20 blur-3xl" />
-            <div className="absolute -bottom-28 left-1/3 h-72 w-72 rounded-full bg-cyan/15 blur-3xl" />
-
-            <div className="relative grid gap-6 lg:grid-cols-[1fr_280px] lg:items-center">
+          <section className="glass-border relative overflow-hidden rounded-lg bg-panel/80 p-5 sm:p-6">
+            <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-fuchsia/25 blur-3xl" />
+            <div className="absolute -bottom-28 -left-16 h-64 w-64 rounded-full bg-cyan/20 blur-3xl" />
+            <div className="relative grid gap-6 lg:grid-cols-[1fr_240px] lg:items-center">
               <div>
-                <Badge className="border-cyan/25 bg-cyan/10 text-cyan">
-                  Live crate-digging mode
-                </Badge>
-                <h1 className="mt-4 max-w-4xl text-4xl font-semibold leading-tight text-white sm:text-6xl">
-                  Search the night wall of vinyl, albums, artists, and tracks.
+                <Badge className="border-cyan/30 bg-cyan/10 text-cyan">Discover</Badge>
+                <h1 className="mt-4 text-display text-white">
+                  Your vinyl universe,{" "}
+                  <span className="brand-gradient-text">live.</span>
                 </h1>
-                <p className="mt-4 max-w-2xl text-base leading-7 text-zinc-300">
-                  VinylHub now connects real Discogs and Spotify data into one
-                  glowing discovery surface for collectors and music obsessives.
+                <p className="mt-4 max-w-2xl text-body text-zinc-300">
+                  Search, collect, and explore music from Discogs and Spotify — all in one place.
                 </p>
                 <div className="mt-5 flex flex-wrap gap-3">
                   <Button asChild>
-                    <a href="/search?q=radiohead%20vinyl">
-                      <Disc3 className="h-4 w-4" />
-                      Search vinyl
-                    </a>
+                    <Link href="/search">
+                      <Search className="h-4 w-4" />
+                      Search
+                    </Link>
                   </Button>
                   <Button asChild variant="secondary">
-                    <a href="/search?q=kendrick%20lamar">
-                      <Radio className="h-4 w-4" />
-                      Explore music
-                    </a>
+                    <Link href="/collection">
+                      <Library className="h-4 w-4" />
+                      Collection
+                    </Link>
                   </Button>
                 </div>
               </div>
-
               <motion.div
                 initial={{ opacity: 0, scale: 0.92 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.55 }}
-                className="mx-auto grid aspect-square w-full max-w-[280px] place-items-center rounded-full border border-cyan/20 bg-black/45 shadow-[0_0_90px_rgba(34,211,238,0.16)]"
+                className="glow-mark mx-auto aspect-square w-full max-w-[200px] overflow-hidden rounded-[2.25rem] border border-cyan/25 bg-panel"
               >
-                <div className="record-grooves spinning-record grid h-[82%] w-[82%] place-items-center rounded-full border border-white/10">
-                  <div className="grid h-24 w-24 place-items-center rounded-full border border-fuchsia/30 bg-fuchsia/20">
-                    <Sparkles className="h-7 w-7 text-fuchsia" />
-                  </div>
-                </div>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/brand/vinylhub-mark.png"
+                  alt="VinylHub"
+                  className="h-full w-full object-cover"
+                />
               </motion.div>
             </div>
           </section>
 
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {stats.map((stat) => (
-              <Card
-                key={stat.label}
-                className="border-white/10 bg-white/[0.045] shadow-[0_0_40px_rgba(255,47,146,0.045)]"
-              >
-                <CardContent className="p-4">
-                  <p className="text-xs text-muted">{stat.label}</p>
-                  <p className={cn("mt-2 text-2xl font-semibold", stat.tone)}>
-                    {stat.value}
-                  </p>
-                </CardContent>
-              </Card>
-            ))}
+            <MetricCard label="Owned records" value={stats?.recordCount ?? 0} icon={Disc3} tone="cyan" />
+            <MetricCard label="Collection value" value={money(stats?.totalValueCents)} icon={TrendingUp} tone="emerald" />
+            <MetricCard label="Wishlist" value={stats?.statusCounts?.WISHLIST ?? 0} icon={Star} tone="amber" />
+            <MetricCard label="Favorites" value={stats?.statusCounts?.FAVORITE ?? 0} icon={Flame} tone="fuchsia" />
           </div>
 
-          <LiveSearchExperience
-            compact
-            initialQuery="Daft Punk Random Access Memories vinyl"
-          />
+          <LiveSearchExperience compact initialQuery="" />
 
-          <div className="grid gap-5 xl:grid-cols-2">
-            <Card className="border-cyan/10 bg-black/45">
+          {discover && discover.trending.length > 0 && (
+            <Card className="border-fuchsia/30 bg-fuchsia/[0.06] shadow-[0_0_36px_rgba(217,0,255,0.14)]">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="h-4 w-4 text-cyan" />
-                  Live System Pulse
+                <CardTitle className="flex items-center gap-2 text-white">
+                  <TrendingUp className="h-4 w-4 text-fuchsia" />
+                  Trending in collections
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {pulseItems.map((item) => (
-                    <div
-                      key={item}
-                      className="rounded-md border border-white/10 bg-white/[0.035] p-3 text-sm leading-6 text-zinc-300"
-                    >
-                      {item}
+              <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {discover.trending.map((item) => (
+                  <Link
+                    key={item.albumSlug}
+                    href={`/albums/${item.albumSlug}`}
+                    className="flex gap-3 rounded-xl border border-emerald/25 bg-emerald/[0.05] p-3 transition hover:border-emerald/50 hover:bg-emerald/[0.1] hover:shadow-[0_0_24px_rgba(0,242,255,0.12)]"
+                  >
+                    <div className="h-14 w-14 shrink-0 overflow-hidden rounded-md border border-white/10 bg-black/50">
+                      {item.coverUrl ? (
+                        <div className="h-full w-full bg-cover bg-center" style={{ backgroundImage: `url(${item.coverUrl})` }} />
+                      ) : (
+                        <div className="record-grooves h-full w-full" />
+                      )}
                     </div>
-                  ))}
-                </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-white">{item.title}</p>
+                      <p className="truncate text-xs text-zinc-400">{item.artist}</p>
+                    </div>
+                  </Link>
+                ))}
               </CardContent>
             </Card>
-
-            <Card className="border-fuchsia/10 bg-black/45">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Flame className="h-4 w-4 text-coral" />
-                  Debate Arena
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {debateItems.map((debate) => (
-                    <div
-                      key={debate.title}
-                      className="rounded-md border border-white/10 bg-white/[0.035] p-3"
-                    >
-                      <p className="font-medium text-white">{debate.title}</p>
-                      <div className="mt-2 flex items-center justify-between gap-3 text-sm text-zinc-400">
-                        <span>{debate.votes} votes</span>
-                        <span className="text-amber">{debate.leader}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          )}
         </section>
 
         <aside className="space-y-5">
-          <Card className="border-emerald/10 bg-black/55">
+          {activeTrack && (
+            <Card className="border-amber/30 bg-amber/[0.06] shadow-[0_0_36px_rgba(255,176,134,0.12)]">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-white">
+                  <Radio className="h-4 w-4 text-amber" />
+                  Continue listening
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm font-medium text-white">{activeTrack.title}</p>
+                <p className="text-xs text-zinc-400">{activeTrack.artist}</p>
+              </CardContent>
+            </Card>
+          )}
+
+          <Card className="border-cyan/30 bg-cyan/[0.06] shadow-[0_0_36px_rgba(0,242,255,0.12)]">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="h-4 w-4 text-emerald" />
-                Collection Intelligence
+              <CardTitle className="flex items-center gap-2 text-white">
+                <Plus className="h-4 w-4 text-cyan" />
+                Quick actions
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="record-grooves spinning-record mx-auto grid aspect-square max-w-[260px] place-items-center rounded-full border border-white/10">
-                <div className="grid h-24 w-24 place-items-center rounded-full border border-amber/30 bg-amber/20 text-center">
-                  <Star className="h-6 w-6 text-amber" />
-                </div>
-              </div>
-              <div className="mt-5 space-y-3 text-sm">
-                <div className="flex justify-between text-zinc-300">
-                  <span>Live data readiness</span>
-                  <span className="text-emerald">Online</span>
-                </div>
-                <div className="h-2 rounded-full bg-white/10">
-                  <div className="h-2 w-[88%] rounded-full bg-gradient-to-r from-emerald via-cyan to-fuchsia" />
-                </div>
-                <p className="leading-6 text-zinc-400">
-                  Search is live. Collection saving, wishlist actions, and
-                  personalized recommendations are ready for the next milestone.
-                </p>
-              </div>
+            <CardContent className="grid gap-2">
+              <Button asChild variant="secondary" className="justify-start">
+                <Link href="/search"><Search className="h-4 w-4" /> Search records</Link>
+              </Button>
+              <Button asChild variant="secondary" className="justify-start">
+                <Link href="/collection"><Library className="h-4 w-4" /> View collection</Link>
+              </Button>
+              <Button asChild variant="secondary" className="justify-start">
+                <Link href="/debates"><Flame className="h-4 w-4" /> Start a debate</Link>
+              </Button>
             </CardContent>
           </Card>
 
-          <Card className="border-cyan/10 bg-black/55">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Waves className="h-4 w-4 text-cyan" />
-                Signal Roadmap
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {[
-                  "Save a Discogs pressing into your owned collection.",
-                  "Match Spotify albums to Discogs vinyl releases.",
-                  "Generate a listening path from your searched artists.",
-                ].map((item) => (
-                  <button
-                    key={item}
-                    className="w-full rounded-md border border-white/10 bg-white/[0.035] p-3 text-left text-sm leading-6 text-zinc-300 transition hover:bg-white/[0.07]"
+          {recent && recent.length > 0 && (
+            <Card className="border-emerald/30 bg-emerald/[0.06] shadow-[0_0_36px_rgba(0,242,255,0.12)]">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-white">
+                  <Disc3 className="h-4 w-4 text-emerald" />
+                  Recently added
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {recent.map((item: { id: string; album: { title: string; slug: string; artist: { name: string } } }) => (
+                  <Link
+                    key={item.id}
+                    href={`/albums/${item.album.slug}`}
+                    className="block rounded-md border border-white/10 bg-white/[0.03] p-2 text-sm transition hover:border-emerald/30"
                   >
-                    {item}
-                  </button>
+                    <p className="font-medium text-white">{item.album.title}</p>
+                    <p className="text-xs text-zinc-400">{item.album.artist.name}</p>
+                  </Link>
                 ))}
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
 
-          <Card className="border-fuchsia/10 bg-black/55">
-            <CardContent className="p-5">
-              <div className="flex items-center gap-2 text-sm font-semibold text-fuchsia">
-                <Activity className="h-4 w-4" />
-                Club Neon Engine
-              </div>
-              <p className="mt-3 text-sm leading-6 text-zinc-400">
-                Animated vinyl, live result shelves, neon source badges, and
-                responsive search are now the app&apos;s main interaction model.
-              </p>
-            </CardContent>
-          </Card>
+          {discover && discover.activity.length > 0 && (
+            <Card className="border-fuchsia/30 bg-fuchsia/[0.06] shadow-[0_0_36px_rgba(217,0,255,0.14)]">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-white">
+                  <Activity className="h-4 w-4 text-fuchsia" />
+                  Activity
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {discover.activity.slice(0, 5).map((a) => (
+                  <div key={a.id} className="text-xs text-zinc-400">
+                    <span className="text-white">{a.user.displayName}</span>{" "}
+                    {a.type.replace(/_/g, " ").toLowerCase()}
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
         </aside>
       </div>
     </AppShell>
